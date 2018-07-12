@@ -38,8 +38,10 @@ export const bindReducer = (actionOrActions, unboundReducer = payloadPassThrough
       {}
   );
 
+  const boundActionsArray = Object.keys(boundActions).map(key => ([key, boundActions[key]]));
+
   return (defaultValue) => (state, { type, payload, error }) =>
-      Object.entries(boundActions).reduce((accState, [actionType, reducer]) => {
+      boundActionsArray.reduce((accState, [actionType, reducer]) => {
           if (type === actionType) {
               return reducer(accState, payload, error);
           }
