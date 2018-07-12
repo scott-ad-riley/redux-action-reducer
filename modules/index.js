@@ -23,25 +23,15 @@ export const extendReducer = (reducer) => (defaultValue = null, ...boundReducers
 }
 
 export const bindReducer = (actionOrActions, unboundReducer = payloadPassThrough) => {
-  const actions = [].concat(actionOrActions)
-  actions.forEach((action) => {
-    if (typeof action !== 'string') {
-      throw new Error('Action type must be a string, received: ' + action);
+  const boundActions = [].concat(actionOrActions).map((actionType) => {
+    if (typeof actionType !== 'string') {
+      throw new Error('Action type must be a string, received: ' + actionType);
     }
+    return [actionType, unboundReducer]
   })
 
-  const boundActions = actions.reduce(
-      (acc, action) => {
-          acc[action] = unboundReducer
-          return acc;
-      },
-      {}
-  );
-
-  const boundActionsArray = Object.keys(boundActions).map(key => ([key, boundActions[key]]));
-
   return (defaultValue) => (state, { type, payload, error }) =>
-      boundActionsArray.reduce((accState, [actionType, reducer]) => {
+      boundActions.reduce((accState, [actionType, reducer]) => {
           if (type === actionType) {
               return reducer(accState, payload, error);
           }
