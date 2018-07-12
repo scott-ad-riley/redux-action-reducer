@@ -1,27 +1,12 @@
 const payloadPassThrough = (state, payload) => payload;
 
-const createReducer = (...actionHandlers) => (defaultValue = null) => {
-    const actions = actionHandlers.reduce(
-        (acc, actionSpec) => {
-            actionSpec = [].concat(actionSpec);
-            const last = actionSpec.slice(-1)[0];
-            const actionReducer = typeof last === 'function' ? last : payloadPassThrough;
-            const actionTypes = actionReducer === payloadPassThrough ? actionSpec : actionSpec.slice(0, -1);
+const createReducer = (defaultValue = null, ...boundReducerCreators) => {
+  const boundReducers = boundReducerCreators.map(creator => creator(defaultValue))
+  return (state, payload) => boundReducers.reduce((acc, boundReducer) => {
+      return boundReducer(acc, payload);
+  }, state)
+}
 
-            actionTypes.forEach(actionType => acc[actionType] = actionReducer);
-            return acc;
-        },
-        {}
-    );
-
-    return (state, { type, payload, error }) => {
-        if (actions[type]) {
-            return actions[type](state, payload, error);
-        }
-
-        return typeof state === 'undefined' ? defaultValue : state;
-    };
-};
 
 export default createReducer;
 
@@ -31,13 +16,13 @@ export const whenError = (reducer = payloadPassThrough) => (state, payload, erro
 export const whenSuccess = (reducer = payloadPassThrough) => (state, payload, error) =>
     error ? state : reducer(state, payload);
 
-export const extendReducer = (reducer) => (...actionHandlers) => (defaultValue = null) => {
-  const extraReducer = createReducer(...actionHandlers)(defaultValue);
+export const extendReducer = (reducer) => (defaultValue = null, ...boundReducers) => {
+  const extraReducer = createReducer(defaultValue, ...boundReducers);
   return (state, action) =>
     extraReducer(reducer(state, action), action);
 }
 
-export const bindReducer = (actionOrActions, unboundReducer) => {
+export const bindReducer = (actionOrActions, unboundReducer = payloadPassThrough) => {
   const actions = [].concat(actionOrActions)
   actions.forEach((action) => {
     if (typeof action !== 'string') {
@@ -45,9 +30,20 @@ export const bindReducer = (actionOrActions, unboundReducer) => {
     }
   })
 
-  if (typeof unboundReducer !== 'function') {
-    throw new Error('Reducer must be a function, received: ' + unboundReducer);
-  }
+  const boundActions = actions.reduce(
+      (acc, action) => {
+          acc[action] = unboundReducer
+          return acc;
+      },
+      {}
+  );
 
-  return createReducer([...actions, unboundReducer])
+  return (defaultValue) => (state, { type, payload, error }) =>
+      Object.entries(boundActions).reduce((accState, [actionType, reducer]) => {
+          if (type === actionType) {
+              return reducer(accState, payload, error);
+          }
+
+          return accState;
+      }, state)
 }
