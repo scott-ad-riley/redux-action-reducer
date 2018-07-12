@@ -29,6 +29,17 @@ describe('createReducer', () => {
         state = reducer(state, { type: 'RESET', payload: 'item1' });
         expect(state).to.eql([]);
     });
+
+    it('chains multiple reducers together when they are bound to the same action', () => {
+      const initialState = { counter: 1 }
+      const reducer = createReducer(initialState,
+        bindReducer('INCREMENT', (state) => ({ counter: state.counter + 1 })),
+        bindReducer('INCREMENT', ({ counter }) => ({ counter, hasCounted: true }))
+      );
+
+      let state = reducer(initialState, { type: 'INCREMENT' })
+      expect(state).to.deep.equal({ counter: 2, hasCounted: true })
+    })
 });
 
 describe('whenError', () => {
