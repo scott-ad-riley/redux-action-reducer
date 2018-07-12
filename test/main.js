@@ -1,5 +1,11 @@
 import { expect } from 'chai';
-import createReducer, { whenError, whenSuccess, extendReducer } from '../modules';
+
+import createReducer, {
+  whenError,
+  whenSuccess,
+  extendReducer,
+  bindReducer
+} from '../modules';
 
 describe('createReducer', () => {
     it('should reduce a single action with identity function', () => {
@@ -103,3 +109,34 @@ describe('extendReducer', () => {
       expect(state).to.equal('');
   });
 });
+
+
+describe('bindReducer', () => {
+  it('should bind a reducer to a single action', () => {
+    const boundReducer = bindReducer('RESET', () => 'reset');
+    const initialState = {};
+    const reducer = boundReducer(initialState);
+
+    let state = reducer(initialState, { type: 'RESET' });
+    expect(state).to.equal('reset');
+  })
+
+  it('should bind a reducer to multiple actions', () => {
+    const boundReducer = bindReducer(['RESET', 'REVERT'], () => 'reset');
+    const initialState = {};
+    const reducer = boundReducer(initialState);
+
+    expect(reducer(initialState, { type: 'RESET' })).to.equal('reset');
+    expect(reducer(initialState, { type: 'REVERT' })).to.equal('reset');
+  })
+
+  it('should throw if the action is not a string, and include the received action type', () => {
+    expect(() => bindReducer(undefined, () => {}))
+      .to.throw('Action type must be a string, received: undefined');
+  })
+
+  it('should throw if the reducer is not a function, and include the received object', () => {
+    expect(() => bindReducer('RESET', {}))
+      .to.throw('Reducer must be a function, received: [object Object]')
+  })
+})

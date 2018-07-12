@@ -36,3 +36,18 @@ export const extendReducer = (reducer) => (...actionHandlers) => (defaultValue =
   return (state, action) =>
     extraReducer(reducer(state, action), action);
 }
+
+export const bindReducer = (actionOrActions, unboundReducer) => {
+  const actions = [].concat(actionOrActions)
+  actions.forEach((action) => {
+    if (typeof action !== 'string') {
+      throw new Error('Action type must be a string, received: ' + action);
+    }
+  })
+
+  if (typeof unboundReducer !== 'function') {
+    throw new Error('Reducer must be a function, received: ' + unboundReducer);
+  }
+
+  return createReducer([...actions, unboundReducer])
+}
